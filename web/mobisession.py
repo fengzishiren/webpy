@@ -21,16 +21,27 @@ __author__ = 'richardzheng'
 class MobiSession(object):
     """
     Session management for web.py
+
     Note: set web.config.debug=False
+    Note: disable session 2 styles:
+        1. MobiSession.kill() method
+        2. timeout expires (default a month or ?)
     """
     __slots__ = [
-        "store", "_initializer", "_last_cleanup_time", "_config", "_data",
+        "store", "_last_cleanup_time", "_config", "_data",
         "__getitem__", "__setitem__", "__delitem__"
     ]
 
-    def __init__(self, app, store, initializer=None, tok_name='access_token', timeout=60 * 60 * 24 * 30):
+    def __init__(self, app, store, tok_name='access_token', timeout=60 * 60 * 24 * 30):
+        """
+
+        :param app:
+        :param store:
+        :param tok_name: http://xxx?'tok_name'=xxx
+        :param timeout: for a timeout is not logged in
+        :return:
+        """
         self.store = store
-        self._initializer = initializer
         self._last_cleanup_time = 0
         self._config = web.utils.storage(tok_name=tok_name, timeout=timeout, secret_key='fLjUfxqXtfNoIldA0A0J')
         self._data = web.utils.threadeddict()  # thread local for multithread of python not multiprocess
@@ -54,12 +65,6 @@ class MobiSession(object):
         # bypass self.__setattr__
         self._data.session_id = session_id
         self._data.uid = uid
-
-        if self._initializer:
-            if isinstance(self._initializer, dict):
-                self.update(copy.deepcopy(self._initializer))
-            elif hasattr(self._initializer, '__call__'):
-                self._initializer()
         return session_id
 
     def _processor(self, handler):
@@ -84,7 +89,7 @@ class MobiSession(object):
             if self.session_id:
                 setattr(self._data, name, value)
             else:
-                raise AttributeError("not found '%s'" % name)
+                raise AttributeError("not found '%s', because session is closed!" % name)
 
     def __delattr__(self, name):
         delattr(self._data, name)
@@ -137,8 +142,10 @@ class VisualMobiSession(MobiSession):
         self._save()
 
 
+import tempfile
+
 if __name__ == '__main__':
-    s = VisualMobiSession(None, web.session.DiskStore('sessions'), {'login': 0})
+    s = VisualMobiSession(None, web.session.DiskStore(tempfile.mkdtemp()), {'login': 0})
     print '----------no session-----------'
     print s.raw_data(), s.login, s.email, s.uid, s.session_id
 
