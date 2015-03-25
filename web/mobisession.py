@@ -51,6 +51,7 @@ class MobiSession(object):
             session_id = session_id.hexdigest()
             if session_id not in self.store:
                 break
+        # bypass self.__setattr__
         self._data.session_id = session_id
         self._data.uid = uid
 
@@ -89,6 +90,10 @@ class MobiSession(object):
         delattr(self._data, name)
 
     def _load(self):
+        """
+        don't create new session by default state
+        :return:
+        """
         session_id = web.input().pop(self._config.tok_name, None)
         if session_id and self._valid_session_id(session_id) and session_id in self.store:
             d = self.store[session_id]
@@ -121,36 +126,34 @@ class MobiSession(object):
         return dict(self._data)
 
 
-class VMobiSession(MobiSession):
+class VisualMobiSession(MobiSession):
     def load(self, session_id=None):
         session_id = session_id if session_id else web.input().get(self._config.tok_name)
         if session_id and self._valid_session_id(session_id) and session_id in self.store:
             d = self.store[session_id]
             self.update(d)
-            # self._data.session_id = session_id
 
     def save(self):
         self._save()
 
 
-import tempfile
-
-
-root = 'session'
-s = VMobiSession(None, web.session.DiskStore(root), {'login': 0})
 if __name__ == '__main__':
-    # print root
+    s = VisualMobiSession(None, web.session.DiskStore('sessions'), {'login': 0})
+    print '----------no session-----------'
+    print s.raw_data(), s.login, s.email, s.uid, s.session_id
 
-    print s.create('08110')
+    print '--------create serssion----------'
+    access_token = s.create('08110')
     # s.load('6b829e0820f3b5d94b3e35508c9c2e69c157ad29')
     print s.raw_data()
-    # print s.emailx
     print s.login, s.email, s.uid
     s.email = 'zhenglinhai@baidu.com'
     print s.raw_data()
     s.update({'count': 0})
     print s.raw_data()
     s.save()
-    import base64
+    print '--------load session--------'
+    s.load(access_token)
+    print s.raw_data(), s.login, s.email, s.uid, s.session_id
 
-    base64.encodestring()
+
