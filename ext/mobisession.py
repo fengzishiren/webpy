@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 
-import copy
 import os
 import time
 import web
@@ -32,18 +31,18 @@ class MobiSession(object):
         "__getitem__", "__setitem__", "__delitem__"
     ]
 
-    def __init__(self, app, store, tok_name='access_token', timeout=60 * 60 * 24 * 30):
+    def __init__(self, app, store, tokname='access_token', timeout=60 * 60 * 24 * 30):
         """
 
         :param app:
         :param store:
-        :param tok_name: http://xxx?'tok_name'=xxx
+        :param tokname: http://xxx?'tokname'=xxx
         :param timeout: for a timeout is not logged in
         :return:
         """
         self.store = store
         self._last_cleanup_time = 0
-        self._config = web.utils.storage(tok_name=tok_name, timeout=timeout, secret_key='fLjUfxqXtfNoIldA0A0J')
+        self._config = web.utils.storage(tokname=tokname, timeout=timeout, secret_key='fLjUfxqXtfNoIldA0A0J')
         self._data = web.utils.threadeddict()  # thread local for multithread of python not multiprocess
         self.__getitem__ = self._data.__getitem__
         self.__setitem__ = self._data.__setitem__
@@ -86,10 +85,7 @@ class MobiSession(object):
         if name in self.__slots__:
             object.__setattr__(self, name, value)
         else:
-            if self.session_id:
-                setattr(self._data, name, value)
-            else:
-                raise AttributeError("not found '%s', because session is closed!" % name)
+            setattr(self._data, name, value)
 
     def __delattr__(self, name):
         delattr(self._data, name)
@@ -99,7 +95,7 @@ class MobiSession(object):
         don't create new session by default state
         :return:
         """
-        session_id = web.input().pop(self._config.tok_name, None)
+        session_id = web.input().pop(self._config.tokname, None)
         if session_id and self._valid_session_id(session_id) and session_id in self.store:
             d = self.store[session_id]
             self.update(d)
@@ -133,7 +129,7 @@ class MobiSession(object):
 
 class VisualMobiSession(MobiSession):
     def load(self, session_id=None):
-        session_id = session_id if session_id else web.input().get(self._config.tok_name)
+        session_id = session_id if session_id else web.input().get(self._config.tokname)
         if session_id and self._valid_session_id(session_id) and session_id in self.store:
             d = self.store[session_id]
             self.update(d)
@@ -145,13 +141,13 @@ class VisualMobiSession(MobiSession):
 import tempfile
 
 if __name__ == '__main__':
-    s = VisualMobiSession(None, web.session.DiskStore(tempfile.mkdtemp()), {'login': 0})
+    s = VisualMobiSession(None, web.session.DiskStore('sessions'))
     print '----------no session-----------'
     print s.raw_data(), s.login, s.email, s.uid, s.session_id
 
-    print '--------create serssion----------'
-    access_token = s.create('08110')
-    # s.load('6b829e0820f3b5d94b3e35508c9c2e69c157ad29')
+    print '--------load serssion----------'
+    # access_token = s.create('08110')
+    s.load('1172168a0aca313c0d0a46726646996a4f553626')
     print s.raw_data()
     print s.login, s.email, s.uid
     s.email = 'zhenglinhai@baidu.com'
@@ -159,8 +155,4 @@ if __name__ == '__main__':
     s.update({'count': 0})
     print s.raw_data()
     s.save()
-    print '--------load session--------'
-    s.load(access_token)
-    print s.raw_data(), s.login, s.email, s.uid, s.session_id
-
-
+    print 'xx'
